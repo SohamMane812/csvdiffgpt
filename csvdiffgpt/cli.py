@@ -5,6 +5,7 @@ import sys
 from typing import Optional, List, Dict, Any
 
 from .tasks.summarize import summarize
+from .tasks.compare import compare
 
 def parse_args() -> argparse.Namespace:
     """
@@ -35,6 +36,30 @@ def parse_args() -> argparse.Namespace:
     summarize_parser.add_argument("--max-cols", dest="max_cols_analyzed", type=int,
                                 help="Maximum number of columns to analyze")
     summarize_parser.add_argument("--model", help="Specific model to use")
+    summarize_parser.add_argument("--no-llm", dest="use_llm", action="store_false", default=True,
+                                help="Skip LLM and return raw metadata (no API key needed)")
+    
+    # Compare command
+    compare_parser = subparsers.add_parser("compare", help="Compare two CSV files")
+    compare_parser.add_argument("file1", help="Path to the first CSV file")
+    compare_parser.add_argument("file2", help="Path to the second CSV file")
+    compare_parser.add_argument("--ask", "--question", dest="question", 
+                              default="What are the key differences between these datasets?", 
+                              help="Question to ask about the differences")
+    compare_parser.add_argument("--api-key", dest="api_key", 
+                              help="API key for the LLM provider")
+    compare_parser.add_argument("--provider", default="gemini", 
+                              choices=["openai", "gemini"], 
+                              help="LLM provider to use")
+    compare_parser.add_argument("--sep1", help="CSV separator for file1 (auto-detected if not provided)")
+    compare_parser.add_argument("--sep2", help="CSV separator for file2 (auto-detected if not provided)")
+    compare_parser.add_argument("--max-rows", dest="max_rows_analyzed", type=int, default=150000,
+                              help="Maximum number of rows to analyze per file")
+    compare_parser.add_argument("--max-cols", dest="max_cols_analyzed", type=int,
+                              help="Maximum number of columns to analyze per file")
+    compare_parser.add_argument("--model", help="Specific model to use")
+    compare_parser.add_argument("--no-llm", dest="use_llm", action="store_false", default=True,
+                              help="Skip LLM and return raw comparison data (no API key needed)")
     
     # Add more commands here as they are implemented
     
@@ -57,7 +82,14 @@ def main() -> None:
     
     # Execute the command
     if command == "summarize":
-        result = summarize(**args_dict)
+        # Create a clean copy of args without any None values
+        clean_args = {k: v for k, v in args_dict.items() if v is not None}
+        result = summarize(**clean_args)
+        print(result)
+    elif command == "compare":
+        # Create a clean copy of args without any None values
+        clean_args = {k: v for k, v in args_dict.items() if v is not None}
+        result = compare(**clean_args)
         print(result)
     # Add more commands here as they are implemented
     else:
