@@ -207,4 +207,6 @@ marimo/_lsp/
 __marimo__/
 
 #Dataset
-test/baseball.csv
+test/
+/baseball.csv
+/baseball2.csv
