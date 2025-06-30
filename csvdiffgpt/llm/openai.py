@@ -1,21 +1,17 @@
 """OpenAI API provider for LLM integration."""
 import os
 import time
-from typing import Dict, Any, Optional, List, Union, cast, TypedDict
+from typing import Dict, Any, Optional, List, Union, cast, TypedDict, Iterable
 
 try:
     import openai
     from openai import OpenAI
+    from openai.types.chat import ChatCompletionUserMessageParam
     OPENAI_AVAILABLE = True
 except ImportError:
     OPENAI_AVAILABLE = False
 
 from .base import LLMProvider
-
-# Define type for OpenAI messages
-class ChatMessage(TypedDict):
-    role: str
-    content: str
 
 class OpenAIProvider(LLMProvider):
     """
@@ -80,9 +76,10 @@ class OpenAIProvider(LLMProvider):
         # Filter out use_llm from kwargs if present
         clean_kwargs = {k: v for k, v in kwargs.items() if k != "use_llm"}
         
-        # Create the message payload
-        # Use proper typing for OpenAI messages
-        messages = [{"role": "user", "content": prompt}]
+        # Create the message using proper typing
+        # Use the ChatCompletionUserMessageParam type for user messages
+        message: ChatCompletionUserMessageParam = {"role": "user", "content": prompt}
+        messages = [message]
         
         # Try to send the request with retries
         last_exception = None
@@ -96,8 +93,11 @@ class OpenAIProvider(LLMProvider):
                     **clean_kwargs
                 )
                 # The content property should always exist for a valid response
-                return str(response.choices[0].message.content)
-            except (openai.APIError, openai.APIConnectionError, openai.RateLimitError) as e:
+                if response.choices and response.choices[0].message.content is not None:
+                    return str(response.choices[0].message.content)
+                else:
+                    raise ValueError("Received empty response from OpenAI API")
+            except (openai.APIError, openai.APIConnectionError, openai.RateLimitError, ValueError) as e:
                 last_exception = e
                 if attempt < retry_count - 1:
                     # Exponential backoff
