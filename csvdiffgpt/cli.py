@@ -6,6 +6,7 @@ from typing import Optional, List, Dict, Any, Sequence
 
 from .tasks.summarize import summarize
 from .tasks.compare import compare
+from .tasks.validate import validate
 
 def parse_args(args: Optional[Sequence[str]] = None) -> argparse.Namespace:
     """
@@ -64,6 +65,32 @@ def parse_args(args: Optional[Sequence[str]] = None) -> argparse.Namespace:
     compare_parser.add_argument("--no-llm", dest="use_llm", action="store_false", default=True,
                               help="Skip LLM and return raw comparison data (no API key needed)")
     
+    # Validate command
+    validate_parser = subparsers.add_parser("validate", help="Validate a CSV file for data quality issues")
+    validate_parser.add_argument("file", help="Path to the CSV file")
+    validate_parser.add_argument("--ask", "--question", dest="question", 
+                               default="Validate this dataset and identify data quality issues", 
+                               help="Question to ask about data quality")
+    validate_parser.add_argument("--api-key", dest="api_key", 
+                               help="API key for the LLM provider")
+    validate_parser.add_argument("--provider", default="gemini", 
+                               choices=["openai", "gemini"], 
+                               help="LLM provider to use")
+    validate_parser.add_argument("--sep", help="CSV separator (auto-detected if not provided)")
+    validate_parser.add_argument("--max-rows", dest="max_rows_analyzed", type=int, default=150000,
+                               help="Maximum number of rows to analyze")
+    validate_parser.add_argument("--max-cols", dest="max_cols_analyzed", type=int,
+                               help="Maximum number of columns to analyze")
+    validate_parser.add_argument("--null-threshold", type=float, default=5.0,
+                               help="Percentage threshold for flagging columns with missing values")
+    validate_parser.add_argument("--cardinality-threshold", type=float, default=95.0,
+                               help="Percentage threshold for high cardinality warning")
+    validate_parser.add_argument("--outlier-threshold", type=float, default=3.0,
+                               help="Z-score threshold for identifying outliers")
+    validate_parser.add_argument("--model", help="Specific model to use")
+    validate_parser.add_argument("--no-llm", dest="use_llm", action="store_false", default=True,
+                               help="Skip LLM and return raw validation results (no API key needed)")
+    
     # Add more commands here as they are implemented
     
     return parser.parse_args(args)
@@ -94,6 +121,11 @@ def main() -> None:
             # Create a clean copy of args without any None values
             clean_args = {k: v for k, v in args_dict.items() if v is not None}
             result = compare(**clean_args)
+            print(result)
+        elif command == "validate":
+            # Create a clean copy of args without any None values
+            clean_args = {k: v for k, v in args_dict.items() if v is not None}
+            result = validate(**clean_args)
             print(result)
         # Add more commands here as they are implemented
         else:
