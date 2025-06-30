@@ -46,7 +46,7 @@ def find_diff_stats(df1: pd.DataFrame, df2: pd.DataFrame) -> Dict[str, Any]:
     Returns:
         Dictionary with diff statistics
     """
-    diff_stats = {}
+    diff_stats: Dict[str, Any] = {}
     
     # Get column differences
     columns1 = set(df1.columns)

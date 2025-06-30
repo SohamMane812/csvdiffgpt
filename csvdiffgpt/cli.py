@@ -2,15 +2,18 @@
 import argparse
 import os
 import sys
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Sequence
 
 from .tasks.summarize import summarize
 from .tasks.compare import compare
 
-def parse_args() -> argparse.Namespace:
+def parse_args(args: Optional[Sequence[str]] = None) -> argparse.Namespace:
     """
     Parse command-line arguments.
     
+    Args:
+        args: Command-line arguments to parse (defaults to sys.argv[1:])
+        
     Returns:
         Parsed arguments
     """
@@ -63,37 +66,44 @@ def parse_args() -> argparse.Namespace:
     
     # Add more commands here as they are implemented
     
-    return parser.parse_args()
+    return parser.parse_args(args)
 
 def main() -> None:
     """
     Main entry point for the CLI.
     """
-    args = parse_args()
-    
-    # If no command is provided, show help
-    if not args.command:
-        parse_args(['--help'])
-        return
-    
-    # Convert arguments to dictionary
-    args_dict = vars(args)
-    command = args_dict.pop("command")
-    
-    # Execute the command
-    if command == "summarize":
-        # Create a clean copy of args without any None values
-        clean_args = {k: v for k, v in args_dict.items() if v is not None}
-        result = summarize(**clean_args)
-        print(result)
-    elif command == "compare":
-        # Create a clean copy of args without any None values
-        clean_args = {k: v for k, v in args_dict.items() if v is not None}
-        result = compare(**clean_args)
-        print(result)
-    # Add more commands here as they are implemented
-    else:
-        print(f"Unknown command: {command}")
+    try:
+        args = parse_args()
+        
+        # If no command is provided, show help
+        if not args.command:
+            parse_args(["--help"])
+            return
+        
+        # Convert arguments to dictionary
+        args_dict = vars(args)
+        command = args_dict.pop("command")
+        
+        # Execute the command
+        if command == "summarize":
+            # Create a clean copy of args without any None values
+            clean_args = {k: v for k, v in args_dict.items() if v is not None}
+            result = summarize(**clean_args)
+            print(result)
+        elif command == "compare":
+            # Create a clean copy of args without any None values
+            clean_args = {k: v for k, v in args_dict.items() if v is not None}
+            result = compare(**clean_args)
+            print(result)
+        # Add more commands here as they are implemented
+        else:
+            print(f"Unknown command: {command}")
+            sys.exit(1)
+    except SystemExit as e:
+        # Re-raise system exits (like when --help is called)
+        raise
+    except Exception as e:
+        print(f"Error: {str(e)}")
         sys.exit(1)
 
 if __name__ == "__main__":

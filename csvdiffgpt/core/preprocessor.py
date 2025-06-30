@@ -1,7 +1,7 @@
 """CSV file preprocessing and analysis."""
 import pandas as pd
 import numpy as np
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Union
 import json
 from ..core.utils import detect_separator, get_file_size_mb
 
@@ -31,8 +31,8 @@ class CSVPreprocessor:
         self.max_rows_analyzed = max_rows_analyzed
         self.max_cols_analyzed = max_cols_analyzed
         self.file_size_mb = get_file_size_mb(file_path)
-        self.df = None
-        self.metadata = {}
+        self.df: Optional[pd.DataFrame] = None
+        self.metadata: Dict[str, Any] = {}
     
     def load_data(self) -> None:
         """
@@ -82,6 +82,10 @@ class CSVPreprocessor:
         if self.df is None:
             self.load_data()
         
+        # Ensure df is not None
+        if self.df is None:
+            raise ValueError("Failed to load DataFrame")
+        
         # Basic metadata
         shape = self.df.shape
         
@@ -112,7 +116,7 @@ class CSVPreprocessor:
             col_type = str(col_data.dtype)
             
             # Prepare column metadata
-            col_meta = {
+            col_meta: Dict[str, Any] = {
                 "type": col_type,
                 "nulls": int(col_data.isna().sum()),
                 "null_percentage": round(col_data.isna().mean() * 100, 2),
