@@ -38,7 +38,7 @@ result = summarize(
     question="What insights can you give me about this dataset?",
     api_key="your-api-key",
     provider="openai/gemini",
-    model='your-desired-model"
+    model="your-desired-model"
 )
 print(result)
 
@@ -63,7 +63,7 @@ result = compare(
     question="What changed between these versions?",
     api_key="your-api-key",
     provider="openai/gemini",
-    model='your-desired-model"
+    model="your-desired-model"
 )
 print(result)
 
@@ -88,7 +88,7 @@ result = validate(
     question="What data quality issues exist in this file?",
     api_key="your-api-key",
     provider="openai/gemini",
-    model='your-desired-model"
+    model="your-desired-model"
 )
 print(result)
 
