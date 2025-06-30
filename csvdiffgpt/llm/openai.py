@@ -1,7 +1,7 @@
 """OpenAI API provider for LLM integration."""
 import os
 import time
-from typing import Dict, Any, Optional, List, Union, cast
+from typing import Dict, Any, Optional, List, Union, cast, TypedDict
 
 try:
     import openai
@@ -11,6 +11,11 @@ except ImportError:
     OPENAI_AVAILABLE = False
 
 from .base import LLMProvider
+
+# Define type for OpenAI messages
+class ChatMessage(TypedDict):
+    role: str
+    content: str
 
 class OpenAIProvider(LLMProvider):
     """
@@ -69,16 +74,18 @@ class OpenAIProvider(LLMProvider):
         Returns:
             The response from the OpenAI API
         """
-        # Use the provided model or default to gpt-o3
-        model_name = model or "gpt-o3"
+        # Use the provided model or default to gpt-4o
+        model_name = model or "gpt-4o"
         
         # Filter out use_llm from kwargs if present
         clean_kwargs = {k: v for k, v in kwargs.items() if k != "use_llm"}
         
         # Create the message payload
+        # Use proper typing for OpenAI messages
         messages = [{"role": "user", "content": prompt}]
         
         # Try to send the request with retries
+        last_exception = None
         for attempt in range(retry_count):
             try:
                 response = self.client.chat.completions.create(
@@ -88,14 +95,18 @@ class OpenAIProvider(LLMProvider):
                     temperature=temperature,
                     **clean_kwargs
                 )
-                return response.choices[0].message.content
+                # The content property should always exist for a valid response
+                return str(response.choices[0].message.content)
             except (openai.APIError, openai.APIConnectionError, openai.RateLimitError) as e:
+                last_exception = e
                 if attempt < retry_count - 1:
                     # Exponential backoff
                     sleep_time = retry_delay * (2 ** attempt)
                     time.sleep(sleep_time)
-                else:
-                    raise Exception(f"Failed to get response from OpenAI API after {retry_count} attempts: {str(e)}")
-        
-        # This line should never be reached but is needed for mypy
-        return ""
+                    
+        # If we get here, all attempts failed
+        if last_exception:
+            raise Exception(f"Failed to get response from OpenAI API after {retry_count} attempts: {str(last_exception)}")
+            
+        # This should never happen, but to satisfy mypy:
+        raise Exception("Failed to get response from OpenAI API with no specific error")
