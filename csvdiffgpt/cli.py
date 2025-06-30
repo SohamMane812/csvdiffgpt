@@ -72,7 +72,7 @@ def main() -> None:
     args = parse_args()
     
     # If no command is provided, show help
-    if not args.command:
+    if args is None or not hasattr(args, 'command') or not args.command:
         parse_args(['--help'])
         return
     

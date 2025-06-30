@@ -1,8 +1,7 @@
 """Google Gemini API provider for LLM integration."""
 import os
 import time
-from typing import Dict, Any, Optional, List
-import json
+from typing import Dict, Any, Optional, List, Union, cast
 
 try:
     import google.generativeai as genai
@@ -47,12 +46,12 @@ class GeminiProvider(LLMProvider):
     def query(
         self, 
         prompt: str, 
-        model: str = "gemini-pro",
+        model: Optional[str] = "gemini-pro",
         max_tokens: Optional[int] = None, 
         temperature: float = 0.2,
         retry_count: int = 3,
         retry_delay: float = 1.0,
-        **kwargs
+        **kwargs: Any
     ) -> str:
         """
         Send a query to the Gemini API.
@@ -70,20 +69,23 @@ class GeminiProvider(LLMProvider):
             The response from the Gemini API
         """
         # Configure generation parameters
-        generation_config = {
+        generation_config: Dict[str, Any] = {
             "temperature": temperature,
-            **kwargs
+            **{k: v for k, v in kwargs.items() if k != "use_llm"}
         }
         
         # Add max_tokens if provided
         if max_tokens:
             generation_config["max_output_tokens"] = max_tokens
         
+        # Use the provided model or default to gemini-2.0-flash
+        model_name = model or "gemini-2.0-flash"
+        
         # Try to send the request with retries
         for attempt in range(retry_count):
             try:
                 # Initialize model
-                model_instance = genai.GenerativeModel(model_name=model, generation_config=generation_config)
+                model_instance = genai.GenerativeModel(model_name=model_name, generation_config=generation_config)
                 
                 # Generate response
                 response = model_instance.generate_content(prompt)
@@ -97,3 +99,6 @@ class GeminiProvider(LLMProvider):
                     time.sleep(sleep_time)
                 else:
                     raise Exception(f"Failed to get response from Gemini API after {retry_count} attempts: {str(e)}")
+        
+        # This line should never be reached but is needed for mypy
+        return ""

@@ -1,6 +1,6 @@
 """Base class for LLM providers."""
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List, Union
 import os
 import json
 
@@ -29,7 +29,7 @@ class LLMProvider(ABC):
         pass
     
     @abstractmethod
-    def query(self, prompt: str, model: Optional[str] = None, **kwargs) -> str:
+    def query(self, prompt: str, model: Optional[str] = None, **kwargs: Any) -> str:
         """
         Send a query to the LLM provider.
         

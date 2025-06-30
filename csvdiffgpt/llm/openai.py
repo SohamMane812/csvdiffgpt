@@ -1,8 +1,7 @@
 """OpenAI API provider for LLM integration."""
 import os
 import time
-from typing import Dict, Any, Optional, List
-import json
+from typing import Dict, Any, Optional, List, Union, cast
 
 try:
     import openai
@@ -48,12 +47,12 @@ class OpenAIProvider(LLMProvider):
     def query(
         self, 
         prompt: str, 
-        model: str = "gpt-4o",
+        model: Optional[str] = "gpt-4o",
         max_tokens: int = 2000, 
         temperature: float = 0.2,
         retry_count: int = 3,
         retry_delay: float = 1.0,
-        **kwargs
+        **kwargs: Any
     ) -> str:
         """
         Send a query to the OpenAI API.
@@ -70,17 +69,24 @@ class OpenAIProvider(LLMProvider):
         Returns:
             The response from the OpenAI API
         """
+        # Use the provided model or default to gpt-o3
+        model_name = model or "gpt-o3"
+        
+        # Filter out use_llm from kwargs if present
+        clean_kwargs = {k: v for k, v in kwargs.items() if k != "use_llm"}
+        
+        # Create the message payload
         messages = [{"role": "user", "content": prompt}]
         
         # Try to send the request with retries
         for attempt in range(retry_count):
             try:
                 response = self.client.chat.completions.create(
-                    model=model,
+                    model=model_name,
                     messages=messages,
                     max_tokens=max_tokens,
                     temperature=temperature,
-                    **kwargs
+                    **clean_kwargs
                 )
                 return response.choices[0].message.content
             except (openai.APIError, openai.APIConnectionError, openai.RateLimitError) as e:
@@ -90,3 +96,6 @@ class OpenAIProvider(LLMProvider):
                     time.sleep(sleep_time)
                 else:
                     raise Exception(f"Failed to get response from OpenAI API after {retry_count} attempts: {str(e)}")
+        
+        # This line should never be reached but is needed for mypy
+        return ""

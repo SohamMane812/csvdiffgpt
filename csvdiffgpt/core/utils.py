@@ -2,7 +2,7 @@
 import os
 import csv
 import pandas as pd
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Dict, Any, Callable
 
 def detect_separator(file_path: str, sample_size: int = 1024) -> str:
     """
@@ -19,12 +19,13 @@ def detect_separator(file_path: str, sample_size: int = 1024) -> str:
         sample = f.read(sample_size)
     
     # Count potential separators
-    separators = {',': 0, ';': 0, '\t': 0, '|': 0}
+    separators: Dict[str, int] = {',': 0, ';': 0, '\t': 0, '|': 0}
     for sep in separators:
         separators[sep] = sample.count(sep)
     
     # Return the most common separator
-    max_sep = max(separators, key=separators.get)
+    # Fix the type issue with max() by using a lambda
+    max_sep = max(separators, key=lambda k: separators[k])
     
     # If no common separator found, default to comma
     if separators[max_sep] == 0:
