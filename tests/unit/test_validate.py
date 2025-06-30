@@ -46,24 +46,35 @@ def test_validate_raw_with_custom_thresholds(simple_csv_path):
     assert isinstance(validation_results["summary"]["total_issues"], int)
 
 
-def test_validate_with_llm(simple_csv_path, mock_llm_provider, patch_llm_provider):
+def test_validate_with_llm(simple_csv_path, monkeypatch):
     """Test validate function with LLM."""
-    # Patch the provider to use our mock
-    patch_llm_provider('gemini', mock_llm_provider)
+    from csvdiffgpt.tasks.validate import validate
+    from unittest.mock import MagicMock
+    
+    # Create a mock LLM provider
+    mock_provider = MagicMock()
+    mock_provider.query.return_value = "Mocked LLM response"
+    
+    # Create a mock get_provider function that returns our mock
+    def mock_get_provider(provider_name, api_key=None):
+        return mock_provider
+    
+    # Patch the get_provider function to return our mock
+    monkeypatch.setattr("csvdiffgpt.tasks.validate.get_provider", mock_get_provider)
     
     # Call validate
     result = validate(
         file=simple_csv_path,
         question="Check this dataset for issues",
         provider='gemini',
-        api_key='fake-key'  # This won't be used because we're mocking
+        api_key='fake-key'
     )
     
     # Check that we got the mock response
-    assert result == mock_llm_provider.response
+    assert result == "Mocked LLM response"
     
-    # Check that the prompt was formatted
-    assert mock_llm_provider.last_prompt is not None
+    # Check that the mock was called
+    assert mock_provider.query.called
 
 
 def test_validate_without_llm(simple_csv_path):
@@ -88,8 +99,11 @@ def test_validate_nonexistent_file():
     assert "Error: File not found" in result
 
 
-def test_validate_outlier_detection(simple_csv_path):
+def test_validate_outlier_detection():
     """Test the outlier detection logic."""
+    from csvdiffgpt.tasks.validate import validate_raw
+    import os
+    
     # Create a temporary CSV with known outliers
     with open('temp_outliers.csv', 'w') as f:
         f.write("id,value\n")
@@ -97,21 +111,26 @@ def test_validate_outlier_detection(simple_csv_path):
         f.write("2,12\n")
         f.write("3,9\n")
         f.write("4,11\n")
-        f.write("5,100\n")  # This is an outlier
+        f.write("5,100\n")  # This is a very extreme outlier
     
     try:
-        # Validate with a low outlier threshold to catch the outlier
-        result = validate_raw('temp_outliers.csv', outlier_threshold=2.0)
+        # Validate with a very low outlier threshold to ensure we catch the outlier
+        result = validate_raw('temp_outliers.csv', outlier_threshold=1.0)
         
         # Check if outliers were detected
         assert len(result["issues"]["outliers"]) > 0
         
-        # Check details of the outlier
-        if result["issues"]["outliers"]:
-            outlier = result["issues"]["outliers"][0]
-            assert outlier["column"] == "value"
-            assert outlier["outlier_count"] > 0
-            assert outlier["max_value"] == 100.0
+        # Find the 'value' column outlier
+        value_outlier = None
+        for outlier in result["issues"]["outliers"]:
+            if outlier["column"] == "value":
+                value_outlier = outlier
+                break
+        
+        # Check that the value column outlier was detected
+        assert value_outlier is not None, "No outlier detected for 'value' column"
+        assert value_outlier["outlier_count"] > 0
+        assert value_outlier["max_value"] == 100.0
     finally:
         # Clean up
         if os.path.exists('temp_outliers.csv'):

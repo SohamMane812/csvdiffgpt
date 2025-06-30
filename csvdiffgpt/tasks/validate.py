@@ -187,22 +187,28 @@ def validate_raw(
         if std < 1e-10:
             continue
             
+        # Calculate z-scores
         z_scores = np.abs((df[col] - mean) / std)
-        outliers = df[col][z_scores > outlier_threshold]
         
+        # Find values that exceed the threshold
+        outlier_mask = z_scores > outlier_threshold
+        outliers = df[col][outlier_mask]
+        
+        # Only report if we found outliers
         if len(outliers) > 0:
             outlier_percentage = (len(outliers) / len(df[col])) * 100
-            if outlier_percentage > 0.1:  # Only report if at least 0.1% are outliers
-                validation_results["issues"]["outliers"].append({
-                    "column": col,
-                    "outlier_count": int(len(outliers)),
-                    "outlier_percentage": round(outlier_percentage, 2),
-                    "min_value": float(df[col].min()),
-                    "max_value": float(df[col].max()),
-                    "mean": float(mean),
-                    "std": float(std),
-                    "severity": "high" if outlier_percentage > 5 else "medium" if outlier_percentage > 1 else "low"
-                })
+            
+            # Always report outliers, regardless of percentage
+            validation_results["issues"]["outliers"].append({
+                "column": col,
+                "outlier_count": int(len(outliers)),
+                "outlier_percentage": round(outlier_percentage, 2),
+                "min_value": float(df[col].min()),
+                "max_value": float(df[col].max()),
+                "mean": float(mean),
+                "std": float(std),
+                "severity": "high" if outlier_percentage > 5 else "medium" if outlier_percentage > 1 else "low"
+            })
     
     # Check for inconsistent formats in string columns
     for col in df.select_dtypes(include=['object']).columns:
