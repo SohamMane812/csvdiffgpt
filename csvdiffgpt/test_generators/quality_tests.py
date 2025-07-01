@@ -1,5 +1,5 @@
 """Generator for data quality tests."""
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, cast
 import pandas as pd
 
 from .base import BaseTestGenerator, register_generator
@@ -21,7 +21,7 @@ class QualityTestGenerator(BaseTestGenerator):
         Returns:
             List of test specifications
         """
-        tests = []
+        tests: List[Dict[str, Any]] = []
         null_threshold = kwargs.get("null_threshold", 5.0)
         
         # Test for expected row count (with some tolerance)
@@ -83,27 +83,28 @@ class QualityTestGenerator(BaseTestGenerator):
                     "severity": "medium",
                     "column": column,
                     "parameters": {
-                        "max_null_percentage": max_null_pct
+                        "max_null_percentage": float(max_null_pct)
                     }
                 })
         
         # Test for outliers in numeric columns
         for issue in validation_results["issues"].get("outliers", []):
             column = issue["column"]
-            # Fix: Use standard Python conditional expression
+            # Use standard Python conditional expression
             outlier_threshold = 4.0 if issue.get("severity", "medium") == "high" else 3.0
+            outlier_pct_plus_buffer = float(issue.get("outlier_percentage", 0)) + 1.0
             
             tests.append({
                 "type": "quality",
                 "subtype": "outliers",
                 "name": f"test_{column}_limited_outliers",
                 "description": f"Test that column '{column}' has limited outliers",
-                "test_code": f"# Calculate z-scores\nmean = df['{column}'].mean()\nstd = df['{column}'].std()\nif std > 0:  # Avoid division by zero\n    z_scores = np.abs((df['{column}'] - mean) / std)\n    outlier_pct = (z_scores > {outlier_threshold}).mean() * 100\n    # Allow up to 1% more outliers than originally detected\n    max_pct = {issue['outlier_percentage'] + 1.0}\n    assert outlier_pct <= max_pct, f\"Found {{outlier_pct:.2f}}% outliers in '{column}', exceeding limit of {{max_pct:.2f}}%\"",
+                "test_code": f"# Calculate z-scores\nmean = df['{column}'].mean()\nstd = df['{column}'].std()\nif std > 0:  # Avoid division by zero\n    z_scores = np.abs((df['{column}'] - mean) / std)\n    outlier_pct = (z_scores > {outlier_threshold}).mean() * 100\n    # Allow up to 1% more outliers than originally detected\n    max_pct = {outlier_pct_plus_buffer}\n    assert outlier_pct <= max_pct, f\"Found {{outlier_pct:.2f}}% outliers in '{column}', exceeding limit of {{max_pct:.2f}}%\"",
                 "severity": "medium",
                 "column": column,
                 "parameters": {
                     "outlier_threshold": float(outlier_threshold),
-                    "max_percentage": issue["outlier_percentage"] + 1.0
+                    "max_percentage": outlier_pct_plus_buffer
                 }
             })
         

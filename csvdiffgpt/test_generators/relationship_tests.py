@@ -1,5 +1,5 @@
 """Generator for data relationship tests."""
-from typing import Dict, Any, List, Optional, Set, Tuple
+from typing import Dict, Any, List, Optional, Set, Tuple, cast
 import pandas as pd
 import numpy as np
 
@@ -22,7 +22,7 @@ class RelationshipTestGenerator(BaseTestGenerator):
         Returns:
             List of test specifications
         """
-        tests = []
+        tests: List[Dict[str, Any]] = []
         
         # Only proceed if we have enough data
         if len(df) < 10:
@@ -54,8 +54,8 @@ class RelationshipTestGenerator(BaseTestGenerator):
                     "column": f"{col1}, {col2}",
                     "parameters": {
                         "columns": [col1, col2],
-                        "expected_correlation": corr,
-                        "min_correlation_abs": min_corr_abs
+                        "expected_correlation": float(corr),
+                        "min_correlation_abs": float(min_corr_abs)
                     }
                 })
         
@@ -94,15 +94,15 @@ class RelationshipTestGenerator(BaseTestGenerator):
         corr_matrix = df_numeric.corr()
         
         # Find pairs with strong correlations
-        pairs = []
+        pairs: List[Tuple[str, str, float]] = []
         for i in range(len(corr_matrix.columns)):
             for j in range(i+1, len(corr_matrix.columns)):  # Upper triangle only
                 col1 = corr_matrix.columns[i]
                 col2 = corr_matrix.columns[j]
-                corr = corr_matrix.iloc[i, j]
+                corr_val = corr_matrix.iloc[i, j]
                 
-                if abs(corr) >= threshold:
-                    pairs.append((col1, col2, corr))
+                if abs(corr_val) >= threshold:
+                    pairs.append((str(col1), str(col2), float(corr_val)))
         
         # Return pairs sorted by absolute correlation (strongest first)
         return sorted(pairs, key=lambda x: abs(x[2]), reverse=True)
@@ -118,7 +118,7 @@ class RelationshipTestGenerator(BaseTestGenerator):
         Returns:
             List of potential ID column names
         """
-        potential_ids = []
+        potential_ids: List[str] = []
         
         for column, details in metadata["columns"].items():
             # Criteria for potential ID columns:

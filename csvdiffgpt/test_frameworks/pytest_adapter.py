@@ -1,5 +1,5 @@
 """Adapter for formatting tests as pytest code."""
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Callable
 import os
 
 from .base import BaseTestFramework, register_framework
@@ -24,7 +24,7 @@ class PytestAdapter(BaseTestFramework):
         severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
         
         # Fix: Handle None values in sorting key by providing default empty string
-        def sort_key(test):
+        def sort_key(test: Dict[str, Any]) -> tuple:
             test_type = test.get("type", "")
             severity = severity_order.get(test.get("severity", "medium"), 4)
             # Convert column to string or empty string if None
@@ -35,7 +35,7 @@ class PytestAdapter(BaseTestFramework):
         sorted_tests = sorted(tests, key=sort_key)
         
         # Group tests by type
-        grouped_tests = {}
+        grouped_tests: Dict[str, List[Dict[str, Any]]] = {}
         for test in sorted_tests:
             test_type = test.get("type", "other")
             if test_type not in grouped_tests:

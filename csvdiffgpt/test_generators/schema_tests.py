@@ -1,5 +1,5 @@
 """Generator for schema validation tests."""
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, cast
 import pandas as pd
 
 from .base import BaseTestGenerator, register_generator
@@ -21,7 +21,7 @@ class SchemaTestGenerator(BaseTestGenerator):
         Returns:
             List of test specifications
         """
-        tests = []
+        tests: List[Dict[str, Any]] = []
         
         # Test for expected column count
         tests.append({
