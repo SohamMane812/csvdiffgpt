@@ -2,6 +2,7 @@
 import argparse
 import os
 import sys
+import re
 from typing import Optional, List, Dict, Any, Sequence
 
 from .tasks.summarize import summarize
@@ -9,6 +10,7 @@ from .tasks.compare import compare
 from .tasks.validate import validate
 from .tasks.clean import clean
 from .tasks.generate_tests import generate_tests
+from .tasks.restructure import restructure
 
 def parse_args(args: Optional[Sequence[str]] = None) -> argparse.Namespace:
     """
@@ -151,6 +153,38 @@ def parse_args(args: Optional[Sequence[str]] = None) -> argparse.Namespace:
                            help="Skip LLM and return raw test specifications (no API key needed)")
     tests_parser.add_argument("--output", "-o", help="Output file to save the generated tests")
     
+    # Restructure command
+    restructure_parser = subparsers.add_parser("restructure", help="Recommend schema restructuring for a CSV file")
+    restructure_parser.add_argument("file", help="Path to the CSV file")
+    restructure_parser.add_argument("--ask", "--question", dest="question", 
+                                 default="Recommend schema improvements for this dataset", 
+                                 help="Question to ask about schema restructuring")
+    restructure_parser.add_argument("--api-key", dest="api_key", 
+                                 help="API key for the LLM provider")
+    restructure_parser.add_argument("--provider", default="gemini", 
+                                 choices=["openai", "gemini"], 
+                                 help="LLM provider to use")
+    restructure_parser.add_argument("--format", default="sql", 
+                                 choices=["sql", "mermaid", "python"], 
+                                 help="Output format for recommendations")
+    restructure_parser.add_argument("--sep", help="CSV separator (auto-detected if not provided)")
+    restructure_parser.add_argument("--max-rows", dest="max_rows_analyzed", type=int, default=150000,
+                                 help="Maximum number of rows to analyze")
+    restructure_parser.add_argument("--max-cols", dest="max_cols_analyzed", type=int,
+                                 help="Maximum number of columns to analyze")
+    restructure_parser.add_argument("--null-threshold", type=float, default=5.0,
+                                 help="Percentage threshold for flagging columns with missing values")
+    restructure_parser.add_argument("--cardinality-threshold", type=float, default=95.0,
+                                 help="Percentage threshold for high cardinality warning")
+    restructure_parser.add_argument("--outlier-threshold", type=float, default=3.0,
+                                 help="Z-score threshold for identifying outliers")
+    restructure_parser.add_argument("--table-name", dest="table_name",
+                                 help="Name for the database table")
+    restructure_parser.add_argument("--model", help="Specific LLM model to use")
+    restructure_parser.add_argument("--no-llm", dest="use_llm", action="store_false", default=True,
+                                 help="Skip LLM and return raw restructuring recommendations (no API key needed)")
+    restructure_parser.add_argument("--output", "-o", help="Output file to save the generated code")
+    
     # Add more commands here as they are implemented
     
     return parser.parse_args(args)
@@ -205,6 +239,12 @@ def main() -> None:
             result = generate_tests(**clean_args)
             print_or_save_result(result, output_file)
             
+        elif command == "restructure":
+            # Create a clean copy of args without any None values
+            clean_args = {k: v for k, v in args_dict.items() if v is not None}
+            result = restructure(**clean_args)
+            print_or_save_result(result, output_file)
+            
         # Add more commands here as they are implemented
         else:
             print(f"Unknown command: {command}")
@@ -228,8 +268,10 @@ def print_or_save_result(result, output_file: Optional[str] = None):
                 f.write(result)
             else:
                 import json
-                # Check if it's a test code (special handling)
-                if isinstance(result, dict) and "test_code" in result:
+                # Check if it's code output (special handling)
+                if isinstance(result, dict) and "output_code" in result:
+                    f.write(result["output_code"])
+                elif isinstance(result, dict) and "test_code" in result:
                     f.write(result["test_code"])
                 else:
                     f.write(json.dumps(result, indent=2, default=str))

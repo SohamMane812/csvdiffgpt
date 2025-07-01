@@ -8,6 +8,7 @@ A modular, production-grade package that enables data analysts to work with CSV 
 - Validate CSVs for data quality issues
 - Recommend cleaning steps for data preparation
 - Generate automated tests for data quality assurance
+- Recommend database schema improvements
 - Summarize CSV content and structure
 - Works with or without LLMs (no API key needed for basic functionality)
 
@@ -191,6 +192,54 @@ with open("test_data_quality.py", "w") as f:
 print("Test code saved to test_data_quality.py")
 ```
 
+### Get schema restructuring recommendations for a CSV file
+
+```python
+from csvdiffgpt import restructure
+
+# Using LLM for detailed schema recommendations
+result = restructure(
+    "path/to/data.csv",
+    question="How should I improve the database schema for this dataset?",
+    api_key="your-api-key",
+    provider="openai/gemini",
+    model="your-desired-model",
+    format="sql"  # Options: sql, mermaid, python
+)
+print(result)
+
+# Without LLM (returns structured schema recommendations with code)
+restructure_data = restructure(
+    "path/to/data.csv",
+    use_llm=False,
+    format="sql",  # Options: sql, mermaid, python
+    table_name="my_table"  # Optional name for the database table
+)
+
+# Get restructuring summary
+print(f"Generated {restructure_data['recommendation_count']} recommendations:")
+for rec_type, count in restructure_data['recommendations_by_type'].items():
+    print(f"- {rec_type}: {count} recommendations")
+
+print(f"Recommendations by severity:")
+for severity, count in restructure_data['recommendations_by_severity'].items():
+    print(f"- {severity}: {count} recommendations")
+
+# Save SQL code to a file
+with open("restructure_schema.sql", "w") as f:
+    f.write(restructure_data["output_code"])
+print("SQL schema saved to restructure_schema.sql")
+
+# Get Mermaid ER diagram
+mermaid_diagram = restructure(
+    "path/to/data.csv",
+    use_llm=False,
+    format="mermaid"  # Generate diagram instead of SQL
+)
+print("ER Diagram:")
+print(mermaid_diagram["output_code"])
+```
+
 ## CLI Usage
 
 The package provides a command-line interface for easy use:
@@ -225,7 +274,21 @@ csvdiffgpt generate-tests data.csv --api-key your-api-key --provider gemini --fr
 
 # Generate tests without LLM (no API key needed)
 csvdiffgpt generate-tests data.csv --no-llm --framework pytest --output tests/test_data.py
+
+# Get schema restructuring recommendations
+csvdiffgpt restructure data.csv --api-key your-api-key --provider gemini --format sql
+
+# Get schema restructuring recommendations without LLM (no API key needed)
+csvdiffgpt restructure data.csv --no-llm --format sql --output schema.sql
 ```
+
+## Supported Output Formats for Restructure
+
+The `restructure` function supports multiple output formats:
+
+- **sql**: SQL DDL statements for creating optimized tables
+- **mermaid**: Mermaid ER diagram code for visualizing the data model
+- **python**: Python code using pandas to transform the data structure
 
 ## Supported Test Frameworks
 
