@@ -6,6 +6,7 @@ A modular, production-grade package that enables data analysts to work with CSV 
 
 - Compare two CSVs and summarize differences
 - Validate CSVs for data quality issues
+- Recommend cleaning steps for data preparation
 - Summarize CSV content and structure
 - Works with or without LLMs (no API key needed for basic functionality)
 
@@ -114,6 +115,43 @@ if validation_data["summary"]["total_issues"] > 0:
         print(f"Column '{issue['column']}' has {issue['outlier_count']} outliers")
 ```
 
+### Get cleaning recommendations for a CSV file
+
+```python
+from csvdiffgpt import clean
+
+# Using LLM for detailed cleaning recommendations
+result = clean(
+    "path/to/data.csv",
+    question="How should I clean this dataset for machine learning?",
+    api_key="your-api-key",
+    provider="openai/gemini",
+    model="your-desired-model"
+)
+print(result)
+
+# Without LLM (returns structured cleaning recommendations with sample code)
+cleaning_data = clean(
+    "path/to/data.csv",
+    use_llm=False
+)
+
+# Get cleaning recommendations
+for step in cleaning_data["cleaning_recommendations"]:
+    print(f"Step {step['priority']}: {step['action']} for column '{step['column']}'")
+    print(f"  Reason: {step['reason']}")
+    print(f"  Severity: {step['severity']}")
+    print()
+
+# Get sample cleaning code
+print("Sample cleaning code:")
+print(cleaning_data["sample_code"])
+
+# Check potential impact
+print(f"Potential impact: {cleaning_data['potential_impact']['rows_affected']} rows affected")
+print(f"Data preserved: {cleaning_data['potential_impact']['percentage_data_preserved']}%")
+```
+
 ## CLI Usage
 
 The package provides a command-line interface for easy use:
@@ -136,11 +174,17 @@ csvdiffgpt validate data.csv --api-key your-api-key --provider gemini
 
 # Validate without using LLM (no API key needed)
 csvdiffgpt validate data.csv --no-llm --null-threshold 10.0 --outlier-threshold 2.5
+
+# Get cleaning recommendations
+csvdiffgpt clean data.csv --api-key your-api-key --provider gemini
+
+# Get cleaning recommendations without LLM (no API key needed)
+csvdiffgpt clean data.csv --no-llm
 ```
 
 ## Supported LLM Providers
 
-- OpenAI
+- OpenAI (GPT-4, GPT-3.5)
 - Google Gemini
 - More coming soon!
 
