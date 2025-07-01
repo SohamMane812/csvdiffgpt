@@ -8,9 +8,9 @@ version = "0.1.0"
 description = "A package for analyzing CSV files using LLMs"
 readme = "README.md"
 authors = [
-    {name = "Soham Mane", email = "sohammane01@gmail.com"}
+    {name = "Your Name", email = "your.email@example.com"}
 ]
-license = {text = "APACHE 2.0"}
+license = {text = "Apache-2.0"}
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
@@ -22,6 +22,7 @@ requires-python = ">=3.9"
 dependencies = [
     "pandas>=1.3.0",
     "numpy>=1.20.0",
+    "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]
@@ -33,6 +34,7 @@ dev = [
     "black>=21.5b2",
     "isort>=5.9.1",
     "mypy>=0.812",
+    "types-PyYAML",
 ]
 all = [
     "openai>=1.0.0",
