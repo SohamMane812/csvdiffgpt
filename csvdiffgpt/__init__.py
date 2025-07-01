@@ -6,5 +6,6 @@ __version__ = "0.1.0"
 from .tasks.summarize import summarize, summarize_raw
 from .tasks.compare import compare, compare_raw
 from .tasks.validate import validate, validate_raw
+from .tasks.clean import clean, clean_raw
 
-__all__ = ["summarize", "summarize_raw", "compare", "compare_raw", "validate", "validate_raw"]
+__all__ = ["summarize", "summarize_raw", "compare", "compare_raw", "validate", "validate_raw", "clean", "clean_raw"]

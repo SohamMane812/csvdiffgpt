@@ -7,6 +7,7 @@ from typing import Optional, List, Dict, Any, Sequence
 from .tasks.summarize import summarize
 from .tasks.compare import compare
 from .tasks.validate import validate
+from .tasks.clean import clean
 
 def parse_args(args: Optional[Sequence[str]] = None) -> argparse.Namespace:
     """
@@ -91,6 +92,32 @@ def parse_args(args: Optional[Sequence[str]] = None) -> argparse.Namespace:
     validate_parser.add_argument("--no-llm", dest="use_llm", action="store_false", default=True,
                                help="Skip LLM and return raw validation results (no API key needed)")
     
+    # Clean command
+    clean_parser = subparsers.add_parser("clean", help="Recommend cleaning steps for a CSV file")
+    clean_parser.add_argument("file", help="Path to the CSV file")
+    clean_parser.add_argument("--ask", "--question", dest="question", 
+                            default="Recommend cleaning steps for this dataset", 
+                            help="Question to ask about cleaning recommendations")
+    clean_parser.add_argument("--api-key", dest="api_key", 
+                            help="API key for the LLM provider")
+    clean_parser.add_argument("--provider", default="gemini", 
+                            choices=["openai", "gemini"], 
+                            help="LLM provider to use")
+    clean_parser.add_argument("--sep", help="CSV separator (auto-detected if not provided)")
+    clean_parser.add_argument("--max-rows", dest="max_rows_analyzed", type=int, default=150000,
+                            help="Maximum number of rows to analyze")
+    clean_parser.add_argument("--max-cols", dest="max_cols_analyzed", type=int,
+                            help="Maximum number of columns to analyze")
+    clean_parser.add_argument("--null-threshold", type=float, default=5.0,
+                            help="Percentage threshold for flagging columns with missing values")
+    clean_parser.add_argument("--cardinality-threshold", type=float, default=95.0,
+                            help="Percentage threshold for high cardinality warning")
+    clean_parser.add_argument("--outlier-threshold", type=float, default=3.0,
+                            help="Z-score threshold for identifying outliers")
+    clean_parser.add_argument("--model", help="Specific model to use")
+    clean_parser.add_argument("--no-llm", dest="use_llm", action="store_false", default=True,
+                            help="Skip LLM and return raw cleaning recommendations (no API key needed)")
+    
     # Add more commands here as they are implemented
     
     return parser.parse_args(args)
@@ -126,6 +153,11 @@ def main() -> None:
             # Create a clean copy of args without any None values
             clean_args = {k: v for k, v in args_dict.items() if v is not None}
             result = validate(**clean_args)
+            print(result)
+        elif command == "clean":
+            # Create a clean copy of args without any None values
+            clean_args = {k: v for k, v in args_dict.items() if v is not None}
+            result = clean(**clean_args)
             print(result)
         # Add more commands here as they are implemented
         else:
