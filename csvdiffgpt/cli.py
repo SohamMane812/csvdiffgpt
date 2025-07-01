@@ -8,6 +8,7 @@ from .tasks.summarize import summarize
 from .tasks.compare import compare
 from .tasks.validate import validate
 from .tasks.clean import clean
+from .tasks.generate_tests import generate_tests
 
 def parse_args(args: Optional[Sequence[str]] = None) -> argparse.Namespace:
     """
@@ -118,6 +119,38 @@ def parse_args(args: Optional[Sequence[str]] = None) -> argparse.Namespace:
     clean_parser.add_argument("--no-llm", dest="use_llm", action="store_false", default=True,
                             help="Skip LLM and return raw cleaning recommendations (no API key needed)")
     
+    # Generate tests command
+    tests_parser = subparsers.add_parser("generate-tests", help="Generate tests for a CSV file")
+    tests_parser.add_argument("file", help="Path to the CSV file")
+    tests_parser.add_argument("--ask", "--question", dest="question", 
+                           default="Generate tests for this dataset to ensure data quality", 
+                           help="Question to ask about test generation")
+    tests_parser.add_argument("--api-key", dest="api_key", 
+                           help="API key for the LLM provider")
+    tests_parser.add_argument("--provider", default="gemini", 
+                           choices=["openai", "gemini"], 
+                           help="LLM provider to use")
+    tests_parser.add_argument("--framework", default="pytest", 
+                           choices=["pytest", "great_expectations", "dbt"], 
+                           help="Test framework to use")
+    tests_parser.add_argument("--sep", help="CSV separator (auto-detected if not provided)")
+    tests_parser.add_argument("--max-rows", dest="max_rows_analyzed", type=int, default=150000,
+                           help="Maximum number of rows to analyze")
+    tests_parser.add_argument("--max-cols", dest="max_cols_analyzed", type=int,
+                           help="Maximum number of columns to analyze")
+    tests_parser.add_argument("--null-threshold", type=float, default=5.0,
+                           help="Percentage threshold for flagging columns with missing values")
+    tests_parser.add_argument("--cardinality-threshold", type=float, default=95.0,
+                           help="Percentage threshold for high cardinality warning")
+    tests_parser.add_argument("--outlier-threshold", type=float, default=3.0,
+                           help="Z-score threshold for identifying outliers")
+    tests_parser.add_argument("--model-name", dest="model_name",
+                           help="Model name for dbt tests")
+    tests_parser.add_argument("--model", help="Specific LLM model to use")
+    tests_parser.add_argument("--no-llm", dest="use_llm", action="store_false", default=True,
+                           help="Skip LLM and return raw test specifications (no API key needed)")
+    tests_parser.add_argument("--output", "-o", help="Output file to save the generated tests")
+    
     # Add more commands here as they are implemented
     
     return parser.parse_args(args)
@@ -138,27 +171,40 @@ def main() -> None:
         args_dict = vars(args)
         command = args_dict.pop("command")
         
+        # Handle output file if specified
+        output_file = args_dict.pop("output", None) if "output" in args_dict else None
+        
         # Execute the command
         if command == "summarize":
             # Create a clean copy of args without any None values
             clean_args = {k: v for k, v in args_dict.items() if v is not None}
             result = summarize(**clean_args)
-            print(result)
+            print_or_save_result(result, output_file)
+            
         elif command == "compare":
             # Create a clean copy of args without any None values
             clean_args = {k: v for k, v in args_dict.items() if v is not None}
             result = compare(**clean_args)
-            print(result)
+            print_or_save_result(result, output_file)
+            
         elif command == "validate":
             # Create a clean copy of args without any None values
             clean_args = {k: v for k, v in args_dict.items() if v is not None}
             result = validate(**clean_args)
-            print(result)
+            print_or_save_result(result, output_file)
+            
         elif command == "clean":
             # Create a clean copy of args without any None values
             clean_args = {k: v for k, v in args_dict.items() if v is not None}
             result = clean(**clean_args)
-            print(result)
+            print_or_save_result(result, output_file)
+            
+        elif command == "generate-tests":
+            # Create a clean copy of args without any None values
+            clean_args = {k: v for k, v in args_dict.items() if v is not None}
+            result = generate_tests(**clean_args)
+            print_or_save_result(result, output_file)
+            
         # Add more commands here as they are implemented
         else:
             print(f"Unknown command: {command}")
@@ -169,6 +215,28 @@ def main() -> None:
     except Exception as e:
         print(f"Error: {str(e)}")
         sys.exit(1)
+
+def print_or_save_result(result, output_file: Optional[str] = None):
+    """Print the result or save it to a file."""
+    if output_file:
+        # Create directory if it doesn't exist
+        os.makedirs(os.path.dirname(os.path.abspath(output_file)), exist_ok=True)
+        
+        # Save to file
+        with open(output_file, 'w', encoding='utf-8') as f:
+            if isinstance(result, str):
+                f.write(result)
+            else:
+                import json
+                # Check if it's a test code (special handling)
+                if isinstance(result, dict) and "test_code" in result:
+                    f.write(result["test_code"])
+                else:
+                    f.write(json.dumps(result, indent=2, default=str))
+        print(f"Result saved to {output_file}")
+    else:
+        # Print to console
+        print(result)
 
 if __name__ == "__main__":
     main()
