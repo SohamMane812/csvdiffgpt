@@ -1,5 +1,5 @@
 """Adapter for formatting restructuring recommendations as Mermaid diagrams."""
-from typing import Dict, Any, List, Optional, Set
+from typing import Dict, Any, List, Optional, Set, Tuple, cast
 import os
 import re
 
@@ -28,7 +28,7 @@ class MermaidAdapter(BaseDataModelAdapter):
         relationships = self._extract_relationships(recommendations, table_name)
         
         # Build Mermaid diagram
-        mermaid_lines = [
+        mermaid_lines: List[str] = [
             "```mermaid",
             "erDiagram",
             ""
@@ -89,7 +89,7 @@ class MermaidAdapter(BaseDataModelAdapter):
         Returns:
             Dictionary of entities with their columns and keys
         """
-        entities = {
+        entities: Dict[str, Dict[str, Any]] = {
             main_table: {
                 "columns": [],
                 "primary_keys": [],
@@ -120,7 +120,9 @@ class MermaidAdapter(BaseDataModelAdapter):
             if rec.get("type") == "relationship" and rec.get("subtype") == "primary_key":
                 pk_column = rec.get("columns", [])[0] if rec.get("columns") else None
                 if pk_column:
-                    entities[main_table]["primary_keys"].append(pk_column)
+                    primary_keys = cast(List[str], entities[main_table].get("primary_keys", []))
+                    primary_keys.append(pk_column)
+                    entities[main_table]["primary_keys"] = primary_keys
         
         # Extract entities from normalization recommendations
         for rec in recommendations:
@@ -151,7 +153,7 @@ class MermaidAdapter(BaseDataModelAdapter):
                 
                 if entity_name and columns:
                     # Build column list for the new entity
-                    entity_columns = []
+                    entity_columns: List[Tuple[str, str]] = []
                     
                     # Add primary key if specified, otherwise use generated ID
                     if primary_key:
@@ -205,7 +207,7 @@ class MermaidAdapter(BaseDataModelAdapter):
         Returns:
             List of relationships between entities
         """
-        relationships = []
+        relationships: List[Dict[str, Any]] = []
         
         # Extract relationships from recommendations
         for rec in recommendations:

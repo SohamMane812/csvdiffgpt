@@ -23,7 +23,7 @@ class NormalizationAnalyzer(BaseRestructureAnalyzer):
         Returns:
             List of restructuring recommendations
         """
-        recommendations = []
+        recommendations: List[Dict[str, Any]] = []
         
         # 1. Identify potential dimension tables
         # Look for categorical columns with repeating values that could be normalized
@@ -144,7 +144,7 @@ class NormalizationAnalyzer(BaseRestructureAnalyzer):
                 f"# Create new dataframe for '{entity_name}' entity",
                 f"{entity_name}_df = df[{columns}].copy()"
             ]
-            
+
             if primary_key:
                 python_code.append(f"# Use existing '{primary_key}' as the primary key")
             else:
@@ -153,12 +153,12 @@ class NormalizationAnalyzer(BaseRestructureAnalyzer):
                     f"{entity_name}_df.reset_index(inplace=True)",
                     f"{entity_name}_df.rename(columns={{'index': '{entity_name}_id'}}, inplace=True)"
                 ])
-            
-            col_list = ', '.join([f'"{c}"' for c in columns if c != primary_key])
+
+            col_str = ', '.join([f"'{c}'" for c in columns if c != primary_key])
             python_code.extend([
                 f"# Remove these columns from the main dataframe",
                 f"# Keep the primary key in both dataframes for the relationship",
-                f"main_df = df.drop(columns=[{col_list}])"
+                f"main_df = df.drop(columns=[{col_str}])"
             ])
 
             
@@ -220,10 +220,11 @@ class NormalizationAnalyzer(BaseRestructureAnalyzer):
             ]
             
             # Python code for normalization
-            column_list_str = ', '.join([f"'{c}'" for c in group_columns])
+            col_str = ', '.join([f"'{c}'" for c in group_columns])
+
             python_code = [
                 f"# Create table for '{group_name}' attributes",
-                f"{table_name}_df = df[[{column_list_str}]].copy()",
+                f"{table_name}_df = df[[{col_str}]].copy()",
                 f"{table_name}_df.reset_index(inplace=True)",
                 f"{table_name}_df.rename(columns={{'index': '{table_name}_id'}}, inplace=True)",
                 f"# Rename columns to remove the prefix",
@@ -234,10 +235,10 @@ class NormalizationAnalyzer(BaseRestructureAnalyzer):
                 f"# Add foreign key to main dataframe",
                 f"df['{table_name}_id'] = {table_name}_df['{table_name}_id']",
                 f"# Remove original columns",
-                f"df = df.drop(columns=[{column_list_str}])"
+                f"df = df.drop(columns=[{col_str}])"
             ]
 
-
+            
             
             recommendations.append({
                 "type": "normalization",
@@ -269,7 +270,7 @@ class NormalizationAnalyzer(BaseRestructureAnalyzer):
         Returns:
             List of dictionaries with information about dimension candidates
         """
-        candidates = []
+        candidates: List[Dict[str, Any]] = []
         total_rows = len(df)
         
         # Skip if too small

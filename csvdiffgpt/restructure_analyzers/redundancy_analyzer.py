@@ -22,7 +22,7 @@ class RedundancyAnalyzer(BaseRestructureAnalyzer):
         Returns:
             List of restructuring recommendations
         """
-        recommendations = []
+        recommendations: List[Dict[str, Any]] = []
         min_similarity = kwargs.get("min_similarity", 0.9)  # Threshold for similarity
         
         # 1. Identify duplicate columns (identical content)
@@ -121,7 +121,7 @@ class RedundancyAnalyzer(BaseRestructureAnalyzer):
             List of column groups where columns within each group are duplicates
         """
         # Hash each column to find duplicates efficiently
-        duplicates = {}
+        duplicates: Dict[int, List[str]] = {}
         
         # Process each column
         for col in df.columns:

@@ -23,7 +23,7 @@ class TypeConsistencyAnalyzer(BaseRestructureAnalyzer):
         Returns:
             List of restructuring recommendations
         """
-        recommendations = []
+        recommendations: List[Dict[str, Any]] = []
         
         # 1. Identify columns with type issues from validation results
         type_issues = []
@@ -204,7 +204,7 @@ class TypeConsistencyAnalyzer(BaseRestructureAnalyzer):
             List of tuples ([column_names], [column_types])
         """
         # Group columns by name pattern
-        name_patterns = {}
+        name_patterns: Dict[str, List[Tuple[str, str]]] = {}
         
         for col, details in metadata.get("columns", {}).items():
             # Normalize column name for comparison (remove numbers, convert to lowercase)

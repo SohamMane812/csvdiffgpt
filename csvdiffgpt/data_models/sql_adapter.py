@@ -28,7 +28,7 @@ class SqlAdapter(BaseDataModelAdapter):
         )
         
         # Group recommendations by type
-        grouped = {}
+        grouped: Dict[str, List[Dict[str, Any]]] = {}
         for rec in sorted_recommendations:
             rec_type = rec.get("type", "other")
             if rec_type not in grouped:

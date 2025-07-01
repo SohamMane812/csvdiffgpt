@@ -23,7 +23,7 @@ class RelationshipAnalyzer(BaseRestructureAnalyzer):
         Returns:
             List of restructuring recommendations
         """
-        recommendations = []
+        recommendations: List[Dict[str, Any]] = []
         
         # 1. Identify potential primary keys
         primary_keys = self._find_potential_primary_keys(df, metadata)
@@ -124,7 +124,7 @@ class RelationshipAnalyzer(BaseRestructureAnalyzer):
         Returns:
             List of tuples (column_name, uniqueness_percentage)
         """
-        candidates = []
+        candidates: List[Tuple[str, float]] = []
         total_rows = metadata.get("total_rows", len(df))
         
         # Skip if dataframe is empty
@@ -169,7 +169,7 @@ class RelationshipAnalyzer(BaseRestructureAnalyzer):
             List of dictionaries with foreign key information
         """
         # Without multiple tables, we can only make basic inferences
-        candidates = []
+        candidates: List[Dict[str, Any]] = []
         
         for column, details in metadata.get("columns", {}).items():
             # Look for columns that might be foreign keys:
@@ -227,7 +227,7 @@ class RelationshipAnalyzer(BaseRestructureAnalyzer):
             return []
         
         # Find potential foreign key columns
-        foreign_key_cols = []
+        foreign_key_cols: List[Dict[str, Any]] = []
         
         for column, details in metadata.get("columns", {}).items():
             if column.lower().endswith('_id'):
@@ -257,7 +257,7 @@ class RelationshipAnalyzer(BaseRestructureAnalyzer):
         Returns:
             List of tuples (column_name, reason)
         """
-        candidates = []
+        candidates: List[Tuple[str, str]] = []
         
         # 1. Foreign keys should be indexed
         for column, details in metadata.get("columns", {}).items():
