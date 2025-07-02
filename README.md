@@ -9,8 +9,9 @@ A modular, production-grade package that enables data analysts to work with CSV 
 - Recommend cleaning steps for data preparation
 - Generate automated tests for data quality assurance
 - Recommend database schema improvements
+- Explain data analysis code in natural language
 - Summarize CSV content and structure
-- Works with or without LLMs (no API key needed for basic functionality)
+- Works with or without LLMs (no API key needed for basic functionality, except for code explanations)
 
 ## Installation
 
@@ -229,15 +230,54 @@ for severity, count in restructure_data['recommendations_by_severity'].items():
 with open("restructure_schema.sql", "w") as f:
     f.write(restructure_data["output_code"])
 print("SQL schema saved to restructure_schema.sql")
+```
 
-# Get Mermaid ER diagram
-mermaid_diagram = restructure(
-    "path/to/data.csv",
-    use_llm=False,
-    format="mermaid"  # Generate diagram instead of SQL
+### Explain data analysis code
+
+```python
+from csvdiffgpt import explain_code
+
+# Explain code from a string
+code = """
+import pandas as pd
+df = pd.read_csv('data.csv')
+result = df.groupby('category').agg({
+    'value': ['mean', 'sum', 'count']
+}).reset_index()
+"""
+
+explanation = explain_code(
+    code=code,
+    detail_level="medium",  # Options: "high", "medium", "low"
+    audience="data_analyst",  # Target audience for explanation
+    api_key="your-api-key",
+    provider="openai/gemini",
+    model="your-desired-model"
 )
-print("ER Diagram:")
-print(mermaid_diagram["output_code"])
+print(explanation)
+
+# Explain code from a file
+explanation = explain_code(
+    file_path="path/to/analysis_script.py",
+    focus="data cleaning section",  # Optional focus on specific part
+    audience="beginner"  # Simpler explanations for beginners
+)
+print(explanation)
+
+# Explain a function object
+def process_data(df):
+    # Clean data
+    df = df.dropna()
+    # Transform data
+    df['new_col'] = df['col1'] / df['col2']
+    # Return result
+    return df.groupby('category').mean()
+
+explanation = explain_code(
+    code_object=process_data,  # Pass the function directly
+    detail_level="high"  # Detailed explanation
+)
+print(explanation)
 ```
 
 ## CLI Usage
@@ -248,39 +288,35 @@ The package provides a command-line interface for easy use:
 # Summarize a CSV file
 csvdiffgpt summarize data.csv --api-key your-api-key --provider gemini
 
-# Summarize without using LLM (no API key needed)
-csvdiffgpt summarize data.csv --no-llm
-
 # Compare two CSV files
 csvdiffgpt compare old.csv new.csv --api-key your-api-key --provider gemini
-
-# Compare without using LLM (no API key needed)
-csvdiffgpt compare old.csv new.csv --no-llm
 
 # Validate a CSV file for data quality issues
 csvdiffgpt validate data.csv --api-key your-api-key --provider gemini
 
-# Validate without using LLM (no API key needed)
-csvdiffgpt validate data.csv --no-llm --null-threshold 10.0 --outlier-threshold 2.5
-
 # Get cleaning recommendations
 csvdiffgpt clean data.csv --api-key your-api-key --provider gemini
 
-# Get cleaning recommendations without LLM (no API key needed)
-csvdiffgpt clean data.csv --no-llm
-
 # Generate tests for data quality
-csvdiffgpt generate-tests data.csv --api-key your-api-key --provider gemini --framework pytest
-
-# Generate tests without LLM (no API key needed)
-csvdiffgpt generate-tests data.csv --no-llm --framework pytest --output tests/test_data.py
+csvdiffgpt generate-tests data.csv --api-key your-api-key --provider gemini --framework pytest --output tests/test_data.py
 
 # Get schema restructuring recommendations
-csvdiffgpt restructure data.csv --api-key your-api-key --provider gemini --format sql
+csvdiffgpt restructure data.csv --api-key your-api-key --provider gemini --format sql --output schema.sql
 
-# Get schema restructuring recommendations without LLM (no API key needed)
-csvdiffgpt restructure data.csv --no-llm --format sql --output schema.sql
+# Explain code from a file
+csvdiffgpt explain-code script.py --api-key your-api-key --provider gemini --detail-level high --output explanation.md
+
+# Explain code snippet directly
+csvdiffgpt explain-code --code "import pandas as pd; df = pd.read_csv('data.csv')" --api-key your-api-key
 ```
+
+## Supported Test Frameworks
+
+The `generate_tests` function supports multiple testing frameworks:
+
+- **pytest**: Standard Python testing framework
+- **Great Expectations**: Data validation framework with rich expectations
+- **dbt**: Data build tool with YAML-based tests
 
 ## Supported Output Formats for Restructure
 
@@ -290,13 +326,12 @@ The `restructure` function supports multiple output formats:
 - **mermaid**: Mermaid ER diagram code for visualizing the data model
 - **python**: Python code using pandas to transform the data structure
 
-## Supported Test Frameworks
+## Supported Languages for Code Explanation
 
-The `generate_tests` function supports multiple testing frameworks:
+The `explain_code` function supports:
 
-- **pytest**: Standard Python testing framework
-- **Great Expectations**: Data validation framework with rich expectations
-- **dbt**: Data build tool with YAML-based tests
+- **Python**: Data analysis scripts, functions, classes
+- **SQL**: Queries, stored procedures, DDL statements
 
 ## Supported LLM Providers
 
@@ -309,11 +344,11 @@ The `generate_tests` function supports multiple testing frameworks:
 Clone the repository and install the development dependencies:
 
 ```bash
-git clone https://github.com/SohamMane812/csvdiffgpt.git
+git clone https://github.com/yourusername/csvdiffgpt.git
 cd csvdiffgpt
 pip install -e ".[dev]"
 ```
 
 ## License
 
-This project is licensed under the APACHE Version 2.0 License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.

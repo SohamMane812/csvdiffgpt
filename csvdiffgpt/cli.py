@@ -11,6 +11,7 @@ from .tasks.validate import validate
 from .tasks.clean import clean
 from .tasks.generate_tests import generate_tests
 from .tasks.restructure import restructure
+from .tasks.explain_code import explain_code
 
 def parse_args(args: Optional[Sequence[str]] = None) -> argparse.Namespace:
     """
@@ -185,6 +186,26 @@ def parse_args(args: Optional[Sequence[str]] = None) -> argparse.Namespace:
                                  help="Skip LLM and return raw restructuring recommendations (no API key needed)")
     restructure_parser.add_argument("--output", "-o", help="Output file to save the generated code")
     
+    # Explain code command
+    explain_parser = subparsers.add_parser("explain-code", help="Explain Python or SQL code")
+    explain_parser.add_argument("file", nargs="?", help="Path to the code file to explain")
+    explain_parser.add_argument("--code", help="Code string to explain (alternative to file)")
+    explain_parser.add_argument("--language", choices=["python", "sql", "auto"], default="auto",
+                              help="Programming language of the code (auto-detected if not specified)")
+    explain_parser.add_argument("--detail-level", choices=["high", "medium", "low"], default="medium",
+                              help="Level of detail in the explanation")
+    explain_parser.add_argument("--focus", help="Specific part of the code to focus on")
+    explain_parser.add_argument("--audience", default="data_analyst",
+                              choices=["beginner", "data_analyst", "data_scientist", "developer", "technical", "non_technical"],
+                              help="Target audience for the explanation")
+    explain_parser.add_argument("--api-key", dest="api_key", 
+                              help="API key for the LLM provider")
+    explain_parser.add_argument("--provider", default="gemini", 
+                              choices=["openai", "gemini"], 
+                              help="LLM provider to use")
+    explain_parser.add_argument("--model", help="Specific LLM model to use")
+    explain_parser.add_argument("--output", "-o", help="Output file to save the explanation")
+    
     # Add more commands here as they are implemented
     
     return parser.parse_args(args)
@@ -245,6 +266,29 @@ def main() -> None:
             result = restructure(**clean_args)
             print_or_save_result(result, output_file)
             
+        elif command == "explain-code":
+            # Handle the explain-code command specifically
+            if not args_dict.get("file") and not args_dict.get("code"):
+                print("Error: Either a file path or code string must be provided.")
+                sys.exit(1)
+                
+            # Set code or file_path parameter
+            if args_dict.get("code"):
+                clean_args = {"code": args_dict.pop("code")}
+            else:
+                clean_args = {"file_path": args_dict.pop("file")}
+                
+            # Handle language parameter
+            if args_dict.get("language") == "auto":
+                args_dict.pop("language", None)  # Let the function auto-detect
+            
+            # Add remaining arguments
+            clean_args.update({k: v for k, v in args_dict.items() if v is not None})
+            
+            # Call explain_code
+            result = explain_code(**clean_args)
+            print_or_save_result(result, output_file)
+            
         # Add more commands here as they are implemented
         else:
             print(f"Unknown command: {command}")
@@ -269,7 +313,9 @@ def print_or_save_result(result, output_file: Optional[str] = None):
             else:
                 import json
                 # Check if it's code output (special handling)
-                if isinstance(result, dict) and "output_code" in result:
+                if isinstance(result, dict) and "code" in result:
+                    f.write(result["code"])
+                elif isinstance(result, dict) and "output_code" in result:
                     f.write(result["output_code"])
                 elif isinstance(result, dict) and "test_code" in result:
                     f.write(result["test_code"])
