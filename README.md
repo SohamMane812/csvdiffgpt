@@ -4,13 +4,13 @@ A modular, production-grade package that enables data analysts to work with CSV 
 
 ## Features
 
-- Compare two CSVs and summarize differences
-- Validate CSVs for data quality issues
-- Recommend cleaning steps for data preparation
-- Generate automated tests for data quality assurance
-- Recommend database schema improvements
-- Explain data analysis code in natural language
-- Summarize CSV content and structure
+- Compares two CSV and summarizes the difference
+- Validates CSV for data quality issues
+- Recommends cleaning steps for data preparation
+- Generates automated tests for data quality assurance
+- Recommends schema improvements
+- Explains data analysis code in natural language
+- Summarizes CSV content and structure
 - Works with or without LLMs (no API key needed for basic functionality, except for code explanations)
 
 ## Installation
@@ -32,6 +32,22 @@ pip install csvdiffgpt[all]
 ## Usage
 
 ### Summarize a CSV file
+<h3>Parameters</h3>
+
+```python
+summarize(
+    file: str,
+    prompt: Optional[str],
+    llm: Optional[LLMProvider] = None,
+    model: str = "openai/gemini",
+    sep: str = ",",
+    max_rows_analyzed: int = 150000,
+    max_cols_analyzed: int = 30,
+    output: Optional[str] = None,
+    api_key: str = "api-key"
+)
+```
+<h3>E.g.: </h3>
 
 ```python
 from csvdiffgpt import summarize
@@ -49,13 +65,31 @@ print(result)
 # Without LLM (returns raw metadata)
 metadata = summarize(
     "path/to/data.csv",
-    use_llm=False  # Returns dictionary instead of string
+    use_llm=False  # Returns dictionary
 )
 print(f"Total rows: {metadata['total_rows']}")
 print(f"Columns: {list(metadata['columns'].keys())}")
 ```
 
 ### Compare two CSV files
+<h3>Parameters</h3>
+
+```python
+compare(
+    file_old: str,
+    file_new: str,
+    prompt: Optional[str] = None,
+    llm: Optional[LLMProvider] = None,
+    model: str = "gemini/openai",
+    sep: str = ",",
+    max_rows_analyzed: int = 150000,
+    max_cols_analyzed: int = 30,
+    output: Optional[str] = None,
+    focus_columns: Optional[List[str]] = None,
+    api_key: str = "api-key"
+)
+```
+<h3>E.g.:</h3>
 
 ```python
 from csvdiffgpt import compare
@@ -75,13 +109,29 @@ print(result)
 comparison_data = compare(
     file1="path/to/old_data.csv",
     file2="path/to/new_data.csv",
-    use_llm=False  # Returns dictionary instead of string
+    use_llm=False  # Returns dictionary 
 )
 print(f"Columns only in new file: {comparison_data['comparison']['structural_changes']['only_in_file2']}")
 print(f"Row count change: {comparison_data['comparison']['structural_changes']['row_count_change']['difference']}")
 ```
 
 ### Validate a CSV file for data quality issues
+
+<h3>Parameters</h3>
+
+```python
+validate(
+    file: str,
+    prompt: str,
+    llm: LLMProvider,
+    model: str = "openai/gemini",
+    sep: str = ",",
+    max_rows_analyzed: int = 150000,
+    output: Optional[str] = None,
+    api_key: str = "api-key"
+)
+```
+<h3>E.g.:</h3>
 
 ```python
 from csvdiffgpt import validate
@@ -99,7 +149,7 @@ print(result)
 # Without LLM (returns raw validation data)
 validation_data = validate(
     "path/to/data.csv",
-    use_llm=False,  # Returns dictionary instead of string
+    use_llm=False,  # Returns dictionary 
     null_threshold=5.0,  # Percentage threshold for missing values
     cardinality_threshold=95.0,  # Threshold for high cardinality warning
     outlier_threshold=3.0  # Z-score threshold for outliers
@@ -119,6 +169,22 @@ if validation_data["summary"]["total_issues"] > 0:
 ```
 
 ### Get cleaning recommendations for a CSV file
+
+<h3>Parameters</h3>
+
+```python
+clean(
+    file: str,
+    prompt: str,
+    llm: LLMProvider,
+    model: str = "openai/gemini",
+    sep: str = ",",
+    output_file: Optional[str] = None,
+    preview_changes: bool = True,
+    api_key: str = "api-key"
+)
+```
+<h3>E.g.:</h3>
 
 ```python
 from csvdiffgpt import clean
@@ -156,6 +222,21 @@ print(f"Data preserved: {cleaning_data['potential_impact']['percentage_data_pres
 ```
 
 ### Generate automated tests for a CSV file
+<h3>Parameters</h3>
+
+```python
+generate_tests(
+    file: str,
+    prompt: Optional[str],
+    llm: LLMProvider,
+    model: str = "openai/gemini",
+    sep: str = ",",
+    output: Optional[str] = None,
+    api_key: str = "api-key"
+)
+```
+
+<h3>E.g.:</h3>
 
 ```python
 from csvdiffgpt import generate_tests
@@ -194,6 +275,23 @@ print("Test code saved to test_data_quality.py")
 ```
 
 ### Get schema restructuring recommendations for a CSV file
+
+<h3>Parameters</h3>
+
+```python
+restructure(
+    file: str,
+    prompt: str,
+    llm: LLMProvider,
+    model: str = "openai/gemini", 
+    sep: str = ",",
+    output_file: Optional[str] = None,
+    preview_changes: bool = True,
+    api_key: str = "api-key"
+)
+```
+
+<h3>E.g.:</h3>
 
 ```python
 from csvdiffgpt import restructure
@@ -234,6 +332,23 @@ print("SQL schema saved to restructure_schema.sql")
 
 ### Explain data analysis code
 
+<h3>Parameters</h3>
+
+```python
+explain_code(
+    code: str,
+    llm: LLMProvider,
+    model: str = "openai/gemini",
+    language: Literal["pandas", "sql"] = "pandas",
+    output: Optional[str] = None,
+    detail_level: Optional[str],  # Options: "high", "medium", "low"
+    audience: Optional[str],  # Target audience for explanation: "beginner", "data_analyst", "data_scientist", "developer", "technical", "non_technical"
+    api_key: str = "api-key"
+)
+```
+
+<h3>E.g.:</h3>
+
 ```python
 from csvdiffgpt import explain_code
 
@@ -249,7 +364,7 @@ result = df.groupby('category').agg({
 explanation = explain_code(
     code=code,
     detail_level="medium",  # Options: "high", "medium", "low"
-    audience="data_analyst",  # Target audience for explanation
+    audience="data_analyst",  # Target audience for explanation: "beginner", "data_analyst", "data_scientist", "developer", "technical", "non_technical"
     api_key="your-api-key",
     provider="openai/gemini",
     model="your-desired-model"
@@ -286,28 +401,28 @@ The package provides a command-line interface for easy use:
 
 ```bash
 # Summarize a CSV file
-csvdiffgpt summarize data.csv --api-key your-api-key --provider gemini
+csvdiffgpt summarize data.csv --api-key your-api-key --provider openai/gemini --model desired-model
 
 # Compare two CSV files
-csvdiffgpt compare old.csv new.csv --api-key your-api-key --provider gemini
+csvdiffgpt compare old.csv new.csv --api-key your-api-key --provider openai/gemini --model desired-model
 
 # Validate a CSV file for data quality issues
-csvdiffgpt validate data.csv --api-key your-api-key --provider gemini
+csvdiffgpt validate data.csv --api-key your-api-key --provider openai/gemini --model desired-model
 
 # Get cleaning recommendations
-csvdiffgpt clean data.csv --api-key your-api-key --provider gemini
+csvdiffgpt clean data.csv --api-key your-api-key --provider openai/gemini --model desired-model
 
 # Generate tests for data quality
-csvdiffgpt generate-tests data.csv --api-key your-api-key --provider gemini --framework pytest --output tests/test_data.py
+csvdiffgpt generate-tests data.csv --api-key your-api-key --provider openai/gemini --model desired-model --framework pytest --output tests/test_data.py
 
 # Get schema restructuring recommendations
-csvdiffgpt restructure data.csv --api-key your-api-key --provider gemini --format sql --output schema.sql
+csvdiffgpt restructure data.csv --api-key your-api-key --provider openai/gemini --model desired-model --format sql --output schema.sql
 
 # Explain code from a file
-csvdiffgpt explain-code script.py --api-key your-api-key --provider gemini --detail-level high --output explanation.md
+csvdiffgpt explain-code script.py --api-key your-api-key --provider openai/gemini --model desired-model --detail-level high --output explanation.md
 
 # Explain code snippet directly
-csvdiffgpt explain-code --code "import pandas as pd; df = pd.read_csv('data.csv')" --api-key your-api-key
+csvdiffgpt explain-code --code "import pandas as pd; df = pd.read_csv('data.csv')" --api-key your-api-key --provider openai/gemini --model desired-model
 ```
 
 ## Supported Test Frameworks
@@ -335,7 +450,7 @@ The `explain_code` function supports:
 
 ## Supported LLM Providers
 
-- OpenAI (GPT-4, GPT-3.5)
+- OpenAI
 - Google Gemini
 - More coming soon!
 
