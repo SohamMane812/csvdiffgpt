@@ -1,9 +1,10 @@
-name: Python Tests
+name: Python Tests and Publish
 
 on:
   push:
     branches: [ main ]
-    tags: [ 'v*' ]  
+    tags:
+      - 'v*'  # Run workflow on version tags, e.g. v0.1.4
   pull_request:
     branches: [ main ]
 
@@ -15,10 +16,10 @@ jobs:
         python-version: [3.9, '3.10', '3.11']
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
     
@@ -26,13 +27,17 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install pytest pytest-cov
+        # Install just dev dependencies first (without optional dependencies that might conflict)
         python -m pip install -e ".[dev]"
+        # Try to install openai separately to isolate any issues
         python -m pip install openai>=1.0.0 || echo "OpenAI install failed, continuing anyway"
     
     - name: Lint with flake8
       run: |
         pip install flake8
+        # stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     
     - name: Type check with mypy
@@ -45,18 +50,19 @@ jobs:
         pytest --cov=csvdiffgpt tests/
     
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v3
 
-  build:
+  build-and-publish:
     needs: test
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags') 
+    # Only run this job if we're on main branch or if we're pushing a tag
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
     
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: '3.10'
     
@@ -67,12 +73,24 @@ jobs:
     
     - name: Build package
       run: python -m build
+      
+    - name: List dist contents
+      run: ls -la dist/
     
     - name: Check distribution
       run: twine check dist/*
     
+    - name: Debug information
+      run: |
+        echo "GitHub ref: ${{ github.ref }}"
+        echo "Is tag: ${{ startsWith(github.ref, 'refs/tags/') }}"
+        echo "Tag name: ${{ github.ref_name }}"
+    
+    # Publish to PyPI when we have a tag
     - name: Publish to PyPI
+      if: startsWith(github.ref, 'refs/tags/')
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         user: __token__
         password: ${{ secrets.PYPI_API_TOKEN }}
+        verbose: true
